@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>正射影像变化卷帘</title>
+<style>
+  :root { color-scheme: dark; font-family: system-ui, "Microsoft YaHei", sans-serif; background: #151a21; color: #eaf0f4 }
+  body { margin: 0 }
+  main { max-width: 1500px; margin: auto; padding: 18px clamp(12px, 2vw, 24px) 24px }
+  h1 { margin: 0 0 6px; font-size: clamp(20px, 3vw, 27px) }
+  p { margin: 6px 0 12px; color: #c2cbd4; line-height: 1.5 }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; padding: 4px 0 8px }
+  label { display: inline-flex; align-items: center; gap: 7px; min-height: 32px }
+  input { accent-color: #7cd7ec; margin: 0 }
+  input[type=range] { width: clamp(112px, 16vw, 230px) }
+  .swatch { width: .9em; height: .9em; background: #26d5df; border-radius: 2px; border: 1px solid #fff8 }
+  #scroll { overflow: auto; max-height: 74vh; border: 1px solid #556575; border-radius: 6px; background: #171c23; overscroll-behavior: contain }
+  #stage { position: relative; width: 100%; aspect-ratio: @@WIDTH@@ / @@HEIGHT@@; --cut: 50% }
+  #stage img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; user-select: none; pointer-events: none }
+  #stage [hidden] { display: none }
+  #t2 { clip-path: inset(0 0 0 var(--cut)) }
+  #divider { position: absolute; height: 100%; top: 0; left: var(--cut); width: 2px; background: #fff; box-shadow: 0 0 4px #101820; transform: translateX(-1px); pointer-events: none }
+  button { background: #27333f; color: #eaf0f4; border: 1px solid #5c6d7d; border-radius: 5px; padding: 6px 11px; cursor: pointer }
+  :focus-visible { outline: 2px solid #7cd7ec; outline-offset: 3px }
+</style>
+<main>
+  <h1>正射影像变化卷帘</h1>
+  <p>左侧为前期影像，右侧为后期影像。青色为共同有效区内的模型候选。</p>
+  <div class="controls" role="group" aria-label="影像对比操作">
+    <label for="swipe">卷帘 <input id="swipe" type="range" min="0" max="100" value="50" aria-label="卷帘分界位置"></label>
+    <button id="allT1" type="button">全看前期</button>
+    <button id="allT2" type="button">全看后期</button>
+    <label for="zoom">缩放 <input id="zoom" type="range" min="100" max="500" step="10" value="100" aria-label="地图缩放比例"><output id="pct" for="zoom">100%</output></label>
+    <button id="resetZoom" type="button">适合窗口</button>
+    <label><input id="showChanges" type="checkbox" checked><span class="swatch" aria-hidden="true"></span>变化候选</label>
+  </div>
+  <div id="scroll" tabindex="0" aria-label="全幅正射与变化图层">
+    <div id="stage">
+      <img src="@@T1@@" alt="前期正射影像">
+      <img id="t2" src="@@T2@@" alt="配准后期正射影像">
+      <img id="overlay" src="@@OVERLAY@@" alt="AnyChange 候选">
+      <div id="divider" aria-hidden="true"></div>
+    </div>
+  </div>
+  <p><small>缩放后可滚动查看局部。坐标与面积请查阅 GIS 成果。</small></p>
+</main>
+<script>
+  'use strict';
+  const get = id => document.getElementById(id);
+  const stage = get('stage');
+  const viewport = get('scroll');
+  const swipe = get('swipe');
+  const zoom = get('zoom');
+  const refreshSwipe = () => {
+    stage.style.setProperty('--cut', `${swipe.value}%`);
+    get('divider').hidden = swipe.value === '0' || swipe.value === '100';
+  };
+  const refreshZoom = () => {
+    const cx = (viewport.scrollLeft + viewport.clientWidth / 2) / stage.offsetWidth;
+    const cy = (viewport.scrollTop + viewport.clientHeight / 2) / stage.offsetHeight;
+    stage.style.width = `${zoom.value}%`;
+    get('pct').value = `${zoom.value}%`;
+    viewport.scrollLeft = cx * stage.offsetWidth - viewport.clientWidth / 2;
+    viewport.scrollTop = cy * stage.offsetHeight - viewport.clientHeight / 2;
+  };
+  const refreshOverlay = () => { get('overlay').hidden = !get('showChanges').checked; };
+  swipe.addEventListener('input', refreshSwipe);
+  get('allT1').addEventListener('click', () => { swipe.value = '100'; refreshSwipe(); });
+  get('allT2').addEventListener('click', () => { swipe.value = '0'; refreshSwipe(); });
+  zoom.addEventListener('input', refreshZoom);
+  get('resetZoom').addEventListener('click', () => { zoom.value = '100'; refreshZoom(); });
+  get('showChanges').addEventListener('change', refreshOverlay);
+  refreshSwipe();
+  refreshOverlay();
+</script>
+</html>
